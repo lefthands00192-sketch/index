@@ -155,11 +155,20 @@
       frame.src = url;
       document.getElementById('slowLink').href = url;   // 안 열릴 때 '바로 열기'용
 
-      // ③ 25초 안에 웹앱이 '다 열렸어요' 신호를 안 보내면 아래쪽에 안내 줄을 보여 줌
+      // ③ 25초 안에 웹앱이 열리지 않으면 아래쪽에 안내 줄을 보여 줌
+      //   [수정] '열렸다'의 기준 = 웹앱의 신호(④) 또는 iframe 이 다 불러와짐(load) 중 하나라도 오면
+      //          (예전: 신호만 기다려서, 웹앱이 잘 열렸는데도 신호가 안 닿으면 안내 줄이 떴음)
       var ready = false;
+      function opened() {
+        ready = true;
+        clearTimeout(slowTimer);
+        document.getElementById('slow').classList.remove('show');
+        document.getElementById('loading').style.display = 'none';
+      }
       var slowTimer = setTimeout(function () {
         if (!ready) document.getElementById('slow').classList.add('show');
       }, 25000);
+      frame.addEventListener('load', opened);
 
       // ④ 웹앱이 보내는 신호 받기
       //    · 구글 앱스스크립트 화면(…googleusercontent.com)에서 온 것만 믿음
@@ -168,10 +177,7 @@
         if (!/^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.googleusercontent\.com$/.test(e.origin)) return;
         var d = e.data;
         if (!d || d.app !== 'class25' || d.type !== 'ready') return;
-        ready = true;
-        clearTimeout(slowTimer);
-        document.getElementById('slow').classList.remove('show');
-        document.getElementById('loading').style.display = 'none';
+        opened();
         // 탭 제목을 학급 이름으로 (글자로만 넣으므로 이상한 내용이 와도 안전)
         if (typeof d.title === 'string' && d.title.trim()) document.title = d.title.trim().slice(0, 40);
       });
